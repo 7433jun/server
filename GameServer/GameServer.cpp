@@ -1,16 +1,12 @@
 #include <iostream>
 using namespace std;
 
-#pragma comment(lib, "Ws2_32.lib")	
-#include <WinSock2.h>	
-#include <WS2tcpip.h> 
-
+#pragma comment(lib, "Ws2_32.lib")
+#include <WinSock2.h>
+#include <WS2tcpip.h>
 
 int main()
 {
-
-	printf("==== SERVER ====\n");
-
 	WORD wVersionRequested;
 	WSAData wsaData;
 
@@ -53,66 +49,22 @@ int main()
 
 	}
 
-	printf("listening...\n");
-
-	SOCKADDR_IN clientService;
-	int addrLen = sizeof(clientService);
-	memset(&clientService, 0, addrLen);
-
-	SOCKET accpetSocket = accept(listenSocket, (SOCKADDR*)&clientService, &addrLen);
-
-	if (accpetSocket == INVALID_SOCKET)
-	{
-
-		printf("accept failed with error : %d\n", WSAGetLastError());
-		closesocket(listenSocket);
-		WSACleanup();
-		return 1;
-	}
-
-	printf("Client Connected.\n");
-
-
-	char ipAddress[16];
-
-	inet_ntop(AF_INET, &clientService.sin_addr, ipAddress, sizeof(ipAddress));
-	printf("Client connected IP : %s\n", ipAddress);
-
-	char sendBuffer[] = "Hello this is Server!";
-
-	if (send(accpetSocket, sendBuffer, sizeof(sendBuffer), 0) == SOCKET_ERROR)
-	{
-		printf("Send Error %d\n", WSAGetLastError());
-		closesocket(accpetSocket);
-		closesocket(listenSocket);
-		WSACleanup();
-		return 1;
-	}
-
-	printf("Send Data : %s\n", sendBuffer);
-
-
 	while (true)
 	{
-		//¹Þ±â
-		char recvBuffer[512];
-		int recvLen = recv(accpetSocket, recvBuffer, sizeof(recvBuffer), 0);
+		printf("listening...\n");
 
-		if (recvLen <= 0)
+		SOCKET acceptSocket = accept(listenSocket, NULL, NULL);
+
+		if (acceptSocket == INVALID_SOCKET)
 		{
-			printf("Recv Error : %d\n", WSAGetLastError());
-			closesocket(accpetSocket);
+			printf("listen failed with error : %d\n", WSAGetLastError());
 			continue;
-
 		}
 
-		printf("Recv buffer Data : %s\n", recvBuffer);
-		printf("Recv buffer Length : %d bytes\n", recvLen);
+		printf("Client Connected.\n");
 	}
 
-
 	closesocket(listenSocket);
-
 	WSACleanup();
 
 	return 0;
