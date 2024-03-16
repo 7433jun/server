@@ -7,6 +7,8 @@ using namespace std;
 
 int main()
 {
+	printf("==== CLIENT ====\n");
+
 	WORD wVersionRequested;
 	WSAData wsaData;
 
@@ -42,9 +44,41 @@ int main()
 
 	printf("Connect to Server\n");
 
+	char recvBuffer[512];
+	int recvLen = recv(connectSocket, recvBuffer, sizeof(recvBuffer), 0);
+
+	if (recvLen <= 0)
+	{
+		printf("Recv Error : %d\n", WSAGetLastError());
+		closesocket(connectSocket);
+		WSACleanup();
+		return 1;
+	}
+
+	printf("Recv buffer Data : %s\n", recvBuffer);
+	printf("Recv buffer Length : %d butes\n", recvLen);
+
 	while (true)
 	{
+		char sendBuffer[] = "Hello this is Client!";
+
+		if (send(connectSocket, sendBuffer, sizeof(sendBuffer), 0) == SOCKET_ERROR)
+		{
+			printf("Send Error %d\n", WSAGetLastError());
+			closesocket(connectSocket);
+			WSACleanup();
+			continue;
+		}
+
+		printf("Send Data : %s\n", sendBuffer);
+
 		Sleep(1000);
+
+		if (GetAsyncKeyState(VK_RETURN))
+		{
+			shutdown(connectSocket, SD_BOTH);
+			break;
+		}
 	}
 
 	closesocket(connectSocket);

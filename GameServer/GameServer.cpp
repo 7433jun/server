@@ -7,6 +7,8 @@ using namespace std;
 
 int main()
 {
+	printf("==== SERVER ====\n");
+
 	WORD wVersionRequested;
 	WSAData wsaData;
 
@@ -49,19 +51,56 @@ int main()
 
 	}
 
+	printf("listening...\n");
+
+	SOCKADDR_IN clientService;
+	int addrLen = sizeof(clientService);
+	memset(&clientService, 0, addrLen);
+
+	SOCKET acceptSocket = accept(listenSocket, (SOCKADDR*)&clientService, &addrLen);
+
+	if (acceptSocket == INVALID_SOCKET)
+	{
+		printf("listen failed with error : %d\n", WSAGetLastError());
+		closesocket(listenSocket);
+		WSACleanup();
+		return 1;
+	}
+
+	printf("Client Connected.\n");
+
+	char ipAddress[16];
+
+	inet_ntop(AF_INET, &clientService.sin_addr, ipAddress, sizeof(ipAddress));
+	printf("Client connected IP : %s\n", ipAddress);
+
+	char sendBuffer[] = "Hello this is Server!";
+
+	if (send(acceptSocket, sendBuffer, sizeof(sendBuffer), 0) == SOCKET_ERROR)
+	{
+		printf("Send Error %d\n", WSAGetLastError());
+		closesocket(acceptSocket);
+		closesocket(listenSocket);
+		WSACleanup();
+		return 1;
+	}
+
+	printf("Send Data : %s\n", sendBuffer);
+
 	while (true)
 	{
-		printf("listening...\n");
+		char recvBuffer[512];
+		int recvLen = recv(acceptSocket, recvBuffer, sizeof(recvBuffer), 0);
 
-		SOCKET acceptSocket = accept(listenSocket, NULL, NULL);
-
-		if (acceptSocket == INVALID_SOCKET)
+		if (recvLen <= 0)
 		{
-			printf("listen failed with error : %d\n", WSAGetLastError());
+			printf("Recv Error : %s\n", WSAGetLastError());
+			closesocket(acceptSocket);
 			continue;
 		}
 
-		printf("Client Connected.\n");
+		printf("Recv buffer Data : %s\n", recvBuffer);
+		printf("Recv buffer Length : %d butes\n", recvLen);
 	}
 
 	closesocket(listenSocket);
