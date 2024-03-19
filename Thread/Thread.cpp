@@ -1,27 +1,30 @@
 #include <iostream>
-#include <Windows.h>
+#include <functional>
 
 using namespace std;
 
-int A(int a, int b)
+class Obj
 {
-	return 0;
-}
-
-using P = int(*)(int, int);
-
-void Call(P p)
-{
-	p();
-}
+public:
+	Obj() {cout << "积己" << endl; }
+	~Obj() { cout << "家戈" << endl; }
+public:
+	void Hello() { cout << "hello world" << endl; }
+};
 
 int main()
 {
-	P p = NULL;
+	std::shared_ptr<Obj> ptr1 = std::make_shared<Obj>();
+	cout << "Reference Count : " << ptr1.use_count() << endl;
 
-	p = A;
+	{
+		//笛促 啊瓷
+		//std::shared_ptr<Obj> ptr2 = std::move(ptr1);
+		std::shared_ptr<Obj> ptr2 = ptr1;
+		cout << "Reference Count : " << ptr1.use_count() << endl;
 
-	Call(p);
+	}//ptr2 家戈
 
+	cout << "Reference Count : " << ptr1.use_count() << endl;
 	return 0;
 }
