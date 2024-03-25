@@ -2,16 +2,16 @@
 
 using namespace std;
 
-void A()
+void SetReference(int&& num)
 {
-	cout << "A" << endl;
+	cout << num << endl;
+	num = 12;
+	cout << num << endl;
 }
 
 int main()
 {
-	A();
-
-	[]() {cout << "Lamda" << endl; }();
+	SetReference(5);
 
 	return 0;
 }
