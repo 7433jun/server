@@ -1,12 +1,13 @@
 #include <iostream>
 using namespace std;
 
-#pragma comment(lib, "Ws2_32.lib")
-#include <WinSock2.h>
-#include <WS2tcpip.h>
+#pragma comment(lib, "Ws2_32.lib")	
+#include <WinSock2.h>	
+#include <WS2tcpip.h> 
 
 int main()
 {
+
 	printf("==== CLIENT ====\n");
 
 	WORD wVersionRequested;
@@ -28,6 +29,7 @@ int main()
 		return 1;
 	}
 
+
 	SOCKADDR_IN service;
 	memset(&service, 0, sizeof(service));
 	service.sin_family = AF_INET;
@@ -36,30 +38,20 @@ int main()
 
 	if (connect(connectSocket, (SOCKADDR*)&service, sizeof(service)) == SOCKET_ERROR)
 	{
-		printf("socket function failed with error : %d\n", WSAGetLastError());
+
+		printf("connect function failed with error : %d\n", WSAGetLastError());
 		closesocket(connectSocket);
 		WSACleanup();
 		return 1;
+
 	}
 
 	printf("Connect to Server\n");
 
-	char recvBuffer[512];
-	int recvLen = recv(connectSocket, recvBuffer, sizeof(recvBuffer), 0);
-
-	if (recvLen <= 0)
-	{
-		printf("Recv Error : %d\n", WSAGetLastError());
-		closesocket(connectSocket);
-		WSACleanup();
-		return 1;
-	}
-
-	printf("Recv buffer Data : %s\n", recvBuffer);
-	printf("Recv buffer Length : %d butes\n", recvLen);
-
 	while (true)
 	{
+
+		//Client Send
 		char sendBuffer[] = "Hello this is Client!";
 
 		if (send(connectSocket, sendBuffer, sizeof(sendBuffer), 0) == SOCKET_ERROR)
@@ -67,7 +59,7 @@ int main()
 			printf("Send Error %d\n", WSAGetLastError());
 			closesocket(connectSocket);
 			WSACleanup();
-			continue;
+			return 1;
 		}
 
 		printf("Send Data : %s\n", sendBuffer);
@@ -78,9 +70,12 @@ int main()
 		{
 			shutdown(connectSocket, SD_BOTH);
 			break;
+
 		}
+
 	}
 
 	closesocket(connectSocket);
 	WSACleanup();
+
 }

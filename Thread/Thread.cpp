@@ -1,23 +1,22 @@
 #include <iostream>
-#include <thread>
-#include <vector>
 
 using namespace std;
-using namespace this_thread;
 
 void Print()
 {
-	while (true)
-	{
-		printf("Hello World\n");
-		sleep_for(1s);
-	}
+	cout << "Finished!" << endl;
+}
+
+template<typename T, typename... Args>
+void Print(T first, Args... args)
+{
+	cout << first << " / ";
+	Print(args...);
 }
 
 int main()
 {
-	thread t(Print);
-	t.join();
+	Print(1, 2, 3.14f, "Hello world", 'a');
 
 	return 0;
 }
