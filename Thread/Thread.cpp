@@ -1,17 +1,23 @@
 #include <iostream>
+#include <thread>
+#include <vector>
 
 using namespace std;
+using namespace this_thread;
 
-void SetReference(int&& num)
+void Print()
 {
-	cout << num << endl;
-	num = 12;
-	cout << num << endl;
+	while (true)
+	{
+		printf("Hello World\n");
+		sleep_for(1s);
+	}
 }
 
 int main()
 {
-	SetReference(5);
+	thread t(Print);
+	t.join();
 
 	return 0;
 }
