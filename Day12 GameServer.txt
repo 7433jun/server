@@ -1,0 +1,128 @@
+#include <iostream>
+using namespace std;
+
+#pragma comment(lib, "Ws2_32.lib")	// 라이브러리 불러오기
+#include <WinSock2.h>				// 소켓 서버 만들기 위해 필요
+#include <WS2tcpip.h>
+
+
+int main()
+{
+	printf("==== SERVER ====\n");
+
+	// 서버가 사용할 수 있는 Windows 소켓 사양의 버전 설정
+	WORD wVersionRequested;
+
+	// Windows 소켓 구현에 대한 세부 정보를 받기 위해 사용
+	WSAData wsaData;
+
+	// 버전을 만들어서 넣어줌
+	wVersionRequested = MAKEWORD(2, 2);
+
+	// Winsock DLL 사용 시작
+	if (WSAStartup(wVersionRequested, &wsaData) != 0)
+	{
+		printf("WSAStartup failed with error\n");
+		return 1;
+	}
+
+	// AF_INET : Ipv4 / SOCK_STREAM : TCP / 0 (Protocol) : 알아서
+	SOCKET listenSocket = socket(AF_INET, SOCK_STREAM, 0);
+	if (listenSocket == INVALID_SOCKET)
+	{
+		printf("socket function failed with error : %d\n", WSAGetLastError());
+	}
+	else
+	{
+		printf("socket function succeded\n");
+	}
+
+	// 서버 주소 정보
+	SOCKADDR_IN service;
+	memset(&service, 0, sizeof(service));
+	service.sin_family = AF_INET;
+	//service.sin_addr.s_addr = inet_addr("127.0.0.1");
+	inet_pton(AF_INET, "127.0.0.1", &service.sin_addr);
+	service.sin_port = htons(27015);
+
+	// 전화기(socket)에 정보(service)등록
+	if (bind(listenSocket, (SOCKADDR*)&service, sizeof(service)) == SOCKET_ERROR)
+	{
+		printf("bind failed with error : %d\n", WSAGetLastError());
+		closesocket(listenSocket);
+		WSACleanup();
+		return 1;
+	}
+
+	// 수신 대기할 소켓, 몇명 대기할지 설정
+	if (listen(listenSocket, 10) == SOCKET_ERROR)
+	{
+		printf("listen failed with error : %d\n", WSAGetLastError());
+		closesocket(listenSocket);
+		WSACleanup();
+		return 1;
+	}
+
+	printf("listening...\n");
+
+	// 클라이언트 서버 정보
+	SOCKADDR_IN clientService;
+	int addrLen = sizeof(clientService);
+	memset(&clientService, 0, addrLen);
+
+	// 클라이언트와 연결될 소켓 생성후 연결
+	SOCKET acceptSocket = accept(listenSocket, (SOCKADDR*)&clientService, &addrLen);
+	if (acceptSocket == INVALID_SOCKET)
+	{
+		printf("accept failed with error : %d\n", WSAGetLastError());
+		closesocket(listenSocket);
+		WSACleanup();
+		return 1;
+	}
+
+	printf("Client Connected\n");
+
+	// 클라이언트 주소
+	char ipAddress[16];
+	inet_ntop(AF_INET, &clientService.sin_addr, ipAddress, sizeof(ipAddress));
+	printf("Client connected IP : %s\n", ipAddress);
+
+	// 클라이언트에게 전송
+	char sendBuffer[] = "Hello this is Server";
+
+	if (send(acceptSocket, sendBuffer, sizeof(sendBuffer), 0) == SOCKET_ERROR)
+	{
+		printf("Send error : %d\n", WSAGetLastError());
+		closesocket(acceptSocket);
+		closesocket(listenSocket);
+		WSACleanup();
+		return 1;
+	}
+
+	printf("Send Data : %s\n", sendBuffer);
+
+
+
+	while (true)
+	{
+		char recvBuffer[512];
+		int recvLen = recv(acceptSocket, recvBuffer, sizeof(recvBuffer), 0);
+
+		if (recvLen <= 0)
+		{
+			printf("Recv error : %d\n", WSAGetLastError());
+			closesocket(acceptSocket);
+			continue;
+		}
+
+		printf("Recv buffer Data : %s\n", recvBuffer);
+		printf("Recv buffer Lengrh : %d bytes\n", recvLen);
+	}
+
+	// 소켓을 닫음
+	closesocket(listenSocket);
+	// Winsock DLL 사용 종료
+	WSACleanup();
+
+	return 0;
+}
