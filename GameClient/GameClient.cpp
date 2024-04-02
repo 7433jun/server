@@ -1,12 +1,68 @@
 #include <iostream>
 using namespace std;
 
-#pragma comment(lib, "Ws2_32.lib")
-#include <WinSock2.h>
-#include <WS2tcpip.h>
+#pragma comment(lib, "Ws2_32.lib")	
+#include <WinSock2.h>	
+#include <WS2tcpip.h> 
+
+#include <thread>
+#include <MSWSock.h> 
+
+
+//IOCP 타입을 만듬
+enum  IOCP_TYPE
+{
+	NONE,
+	CONNECT,
+	DISCONNECT,
+
+};
+
+//IocpEvnet을 만들어서 IOCP_TYPE을 추가
+struct IocpEvent
+{
+	WSAOVERLAPPED overlapped = {};
+	IOCP_TYPE type = NONE;
+
+}; //[WSAOVERLAPPED...   ][IOCP_TYPE.. ]
+
+
+void ConnectThread(HANDLE iocpHandle)
+{
+	DWORD bytesTransferred = 0;
+	ULONG_PTR key = 0;
+	//WSAOVERLAPPED overlapped = {};
+	IocpEvent* iocpEvent = nullptr;
+
+	while (true)
+	{
+		printf("Waiting...\n");
+
+		if (GetQueuedCompletionStatus(iocpHandle, &bytesTransferred, &key, (LPOVERLAPPED*)&iocpEvent, INFINITE))
+		{
+			switch (iocpEvent->type)
+			{
+			case CONNECT:
+				printf("Client Connect!\n");
+				break;
+			case DISCONNECT:
+				printf("Client Disconnect!\n");
+				break;
+			default:
+				break;
+			}
+		}
+	}
+
+}
+
+
 
 int main()
 {
+	//1초 늦게 시작
+	this_thread::sleep_for(1s);
+
 	printf("==== CLIENT ====\n");
 
 	WORD wVersionRequested;
@@ -20,7 +76,8 @@ int main()
 		return 1;
 	}
 
-	SOCKET connectSocket = socket(AF_INET, SOCK_STREAM, 0);
+
+	SOCKET connectSocket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
 	if (connectSocket == INVALID_SOCKET)
 	{
 		printf("socket function failed with error : %d\n", WSAGetLastError());
@@ -28,48 +85,96 @@ int main()
 		return 1;
 	}
 
-	// 서버 주소 정보(서버와 동일)
-	SOCKADDR_IN service;
-	memset(&service, 0, sizeof(service));
-	service.sin_family = AF_INET;
-	inet_pton(AF_INET, "127.0.0.1", &service.sin_addr);
-	service.sin_port = htons(27015);
 
-	// 서버 접속(소켓 연결)
-	if (connect(connectSocket, (SOCKADDR*)&service, sizeof(service)) == SOCKET_ERROR)
+	DWORD dwBytes;
+	LPFN_CONNECTEX lpfnConnectEx = NULL;
+	GUID guidConnectEx = WSAID_CONNECTEX;
+	if (WSAIoctl(connectSocket, SIO_GET_EXTENSION_FUNCTION_POINTER, &guidConnectEx, sizeof(guidConnectEx),
+		&lpfnConnectEx, sizeof(lpfnConnectEx), &dwBytes, NULL, NULL) == SOCKET_ERROR)
 	{
-		printf("connect function failed with error : %d\n", WSAGetLastError());
+		printf("WSAIoctl ConnectEx failed with error : %d\n", WSAGetLastError());
 		closesocket(connectSocket);
 		WSACleanup();
 		return 1;
 	}
 
-	printf("Connect to Server\n");
 
-	while (true)
+	//DisconnectdEx 함수포인터 로드
+	LPFN_DISCONNECTEX lpfnDisconnectEx = NULL;
+	GUID guidDisconnectEx = WSAID_DISCONNECTEX;
+	if (WSAIoctl(connectSocket, SIO_GET_EXTENSION_FUNCTION_POINTER, &guidDisconnectEx, sizeof(guidDisconnectEx),
+		&lpfnDisconnectEx, sizeof(lpfnDisconnectEx), &dwBytes, NULL, NULL) == SOCKET_ERROR)
 	{
-		char sendBuffer[] = "Hello this is Client";
-		if (send(connectSocket, sendBuffer, sizeof(sendBuffer), 0) == SOCKET_ERROR)
+		printf("WSAIoctl DisonnectEx failed with error : %d\n", WSAGetLastError());
+		closesocket(connectSocket);
+		WSACleanup();
+		return 1;
+	}
+
+	SOCKADDR_IN serverService;
+	memset(&serverService, 0, sizeof(serverService));
+	serverService.sin_family = AF_INET;
+	inet_pton(AF_INET, "127.0.0.1", &serverService.sin_addr);
+	serverService.sin_port = htons(27015);
+
+	SOCKADDR_IN clientService;
+	memset(&clientService, 0, sizeof(clientService));
+	clientService.sin_family = AF_INET;
+	clientService.sin_addr.s_addr = htonl(INADDR_ANY);
+	clientService.sin_port = htons(0);
+
+	if (bind(connectSocket, (SOCKADDR*)&clientService, sizeof(clientService)) == SOCKET_ERROR)
+	{
+		printf("bind failed with error : %d\n", WSAGetLastError());
+		closesocket(connectSocket);
+		WSACleanup();
+		return 1;
+	}
+
+
+	HANDLE iocpHandle = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, NULL, NULL);
+	ULONG_PTR key = 0;
+	CreateIoCompletionPort((HANDLE)connectSocket, iocpHandle, key, 0);
+
+	thread t(ConnectThread, iocpHandle);
+
+
+	DWORD  bytesTransferred = 0;
+	IocpEvent* connectEvent = new IocpEvent;
+	connectEvent->type = CONNECT;
+
+	if (!lpfnConnectEx(connectSocket, (SOCKADDR*)&serverService, sizeof(serverService), nullptr, 0, &bytesTransferred, &connectEvent->overlapped))
+	{
+		if (WSAGetLastError() != ERROR_IO_PENDING)
 		{
-			printf("Send error : %d\n", WSAGetLastError());
+			printf("ConnectdEx failed with error : %d\n", WSAGetLastError());
 			closesocket(connectSocket);
 			WSACleanup();
 			return 1;
 		}
 
-		printf("Send Data : %s\n", sendBuffer);
-
-		Sleep(1000);
-
-		if (GetAsyncKeyState(VK_RETURN))
-		{
-			shutdown(connectSocket, SD_BOTH);
-			break;
-		}
 	}
+
+	IocpEvent* disConnectEvent = new IocpEvent;
+	disConnectEvent->type = DISCONNECT;
+
+	if (!lpfnDisconnectEx(connectSocket, &disConnectEvent->overlapped, 0, 0))
+	{
+		if (WSAGetLastError() != ERROR_IO_PENDING)
+		{
+			printf("DisConnectEx failed with error : %d\n", WSAGetLastError());
+			closesocket(connectSocket);
+			WSACleanup();
+			return 1;
+		}
+
+	}
+
+
+
+	t.join();
 
 	closesocket(connectSocket);
 	WSACleanup();
 
-	return 0;
 }
