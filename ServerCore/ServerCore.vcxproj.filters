@@ -21,6 +21,12 @@
     <ClCompile Include="Listener.cpp">
       <Filter>Network</Filter>
     </ClCompile>
+    <ClCompile Include="SocketHelper.cpp">
+      <Filter>Network</Filter>
+    </ClCompile>
+    <ClCompile Include="IocpCore.cpp">
+      <Filter>Network</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -33,6 +39,12 @@
       <Filter>Network</Filter>
     </ClInclude>
     <ClInclude Include="Listener.h">
+      <Filter>Network</Filter>
+    </ClInclude>
+    <ClInclude Include="SocketHelper.h">
+      <Filter>Network</Filter>
+    </ClInclude>
+    <ClInclude Include="IocpCore.h">
       <Filter>Network</Filter>
     </ClInclude>
   </ItemGroup>
