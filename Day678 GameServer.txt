@@ -1,0 +1,214 @@
+#include <iostream>
+#include <thread>
+using namespace std;
+
+#pragma comment(lib, "Ws2_32.lib")
+#include <WinSock2.h>
+#include <WS2tcpip.h>
+#include <MSWSock.h>
+
+SOCKET listenSocket;
+LPFN_ACCEPTEX lpfnAcceptEx = nullptr;
+GUID guidAcceptEx = WSAID_ACCEPTEX;
+
+// 비동기 I/O 작업을 처리하는 스레드 함수
+void AcceptThread(HANDLE iocpHandle)
+{
+	DWORD bytesTransferred = 0;
+	ULONG_PTR key = 0;
+	WSAOVERLAPPED overlapped = {};
+
+	while (true)
+	{
+		printf("Waiting...\n");
+		if (GetQueuedCompletionStatus(iocpHandle, &bytesTransferred, &key, (LPOVERLAPPED*)&overlapped, INFINITE))
+		{
+			printf("Client Connected\n");
+
+			char lpOutputBuf[1024];
+			SOCKET acceptSocket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
+			if (acceptSocket == INVALID_SOCKET)
+			{
+				printf("Accept Socket failed with error : %d\n", WSAGetLastError());
+				return;
+			}
+
+			DWORD dwBytes;
+
+			if (lpfnAcceptEx(listenSocket, acceptSocket, lpOutputBuf, 0, sizeof(SOCKADDR) + 16, sizeof(SOCKADDR) + 16, &dwBytes, &overlapped))
+			{
+				if (WSAGetLastError() != ERROR_IO_PENDING)
+				{
+					printf("Accept failed with error : %d\n", WSAGetLastError());
+					closesocket(acceptSocket);
+					WSACleanup();
+					return;
+				}
+			}
+		}
+	}
+}
+
+int main()
+{
+	printf("==== SERVER ====\n");
+
+	WORD wVersionRequested;
+	WSAData wsaData;
+
+	wVersionRequested = MAKEWORD(2, 2);
+
+	// 생성
+	if (WSAStartup(wVersionRequested, &wsaData) != 0)
+	{
+		printf("WSAStartup failed with error\n");
+		return 1;
+	}
+
+	// 리슨 소켓 생성
+	SOCKET listenSocket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
+	if (listenSocket == INVALID_SOCKET)
+	{
+		printf("socket function failed with error : %d\n", WSAGetLastError());
+		WSACleanup();
+		return 1;
+	}
+
+	// 서버 주소 정보 생성
+	SOCKADDR_IN service;
+	memset(&service, 0, sizeof(service));
+	service.sin_family = AF_INET;
+	service.sin_addr.s_addr = htonl(INADDR_ANY);
+	service.sin_port = htons(27015);
+
+	// listenSocket에 주소 등록
+	if (bind(listenSocket, (SOCKADDR*)&service, sizeof(service)) == SOCKET_ERROR)
+	{
+		printf("bind failed with error : %d\n", WSAGetLastError());
+		closesocket(listenSocket);
+		WSACleanup();
+		return 1;
+	}
+
+	// 수신 대기
+	if (listen(listenSocket, 10) == SOCKET_ERROR)
+	{
+		printf("listen failed with error : %d\n", WSAGetLastError());
+		closesocket(listenSocket);
+		WSACleanup();
+		return 1;
+	}
+
+	printf("listening...\n");
+
+
+	DWORD dwBytes;
+
+	// 함수 포인터에다가 값을 넣어줌
+	// WSAIoctl(소켓, 제어코드, 입력버퍼, 입력 버퍼 크기, 출력 버퍼 포인터, 출력 버퍼 크기, 실제 출력 바이트수, NULL, NULL);
+	// WSAIoctl(소켓, 제어코드, GUID, GUID크기, accept함수포인터, LPFN_ACCEPTEX크기, 실제 출력 바이트수, NULL, NULL);
+	if (WSAIoctl(listenSocket, SIO_GET_EXTENSION_FUNCTION_POINTER, &guidAcceptEx, sizeof(guidAcceptEx),
+		&lpfnAcceptEx, sizeof(lpfnAcceptEx), &dwBytes, NULL, NULL) == SOCKET_ERROR)
+	{
+		printf("WSAIoctl failed with error : %d\n", WSAGetLastError());
+		closesocket(listenSocket);
+		WSACleanup();
+		return 1;
+	}
+
+	// 클라이언트와 연결 수락할 소켓을 미리 생성
+	SOCKET acceptSocket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
+	if (acceptSocket == INVALID_SOCKET)
+	{
+		printf("Accept Socket failed with error : %d\n", WSAGetLastError());
+		closesocket(listenSocket);
+		WSACleanup();
+		return 1;
+	}
+
+
+	/* 소켓 옵션 설정
+
+	// 연결 유지 상태 확인
+	// 네트워크 불안정, 연결이 끊긴것도
+	// 주기적으로 TCP 프로토콜 연결 상태 확인 -> 끊어진 연결 감지
+	bool enable = true;
+	setsockopt(acceptSocket, SOL_SOCKET, SO_KEEPALIVE, (char*)&enable, sizeof(enable));
+
+	// SO_LINGER : 지연하다
+	// 송신 버퍼에 있는 데이터를 보낼것인지 없애 버릴것인지
+	// l_onoff == 0 : closesocket()이 바로 리턴, l_onoff == 1 : l_linger 초만큼 대기(default 0)
+	LINGER linger;
+	linger.l_onoff = 1;		// 1(기능켜기), 0(기능끄기)
+	linger.l_linger = 5;	// 5초 대기
+	setsockopt(acceptSocket, SOL_SOCKET, SO_LINGER, (char*)&linger, sizeof(linger));
+
+	// SO_REUSEADDR : IP주소 및 port재사용
+	// 바인딩한 포트를 빠르게 재사용 할수 있게 허용하는 옵션
+	bool enable = true;
+	setsockopt(acceptSocket, SOL_SOCKET, SO_REUSEADDR, (char*)&enable, sizeof(enable));
+
+	// SO_SNDBUF : 송신 버퍼의 크기 제어
+	int buffer_size = 8192; // 원하는 버퍼 크기로 설정
+	setsockopt(acceptSocket, SOL_SOCKET, SO_SNDBUF, (char*)&buffer_size, sizeof(buffer_size));
+
+	// SO_RCVBUF : 수신 버퍼의 크기 제어
+	int buffer_size = 8192;
+	setsockopt(acceptSocket, SOL_SOCKET, SO_RCVBUF, (char*)&buffer_size, sizeof(buffer_size));
+
+	// SO_UPDATE_ACCEPT_CONTEXT : 클라이언트로부터 새로운 연결(accept)을 하면,
+	// 새 소켓에 listenSocket에 있는 속성과 상태를 전달
+	// listenSocket이랑 속성과 상태를 업데이트 하기 위해서
+	setsockopt(acceptSocket, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, (char*)&listenSocket, sizeof(listenSocket));
+
+	// TCP_NODELAY : 네트워크 통신에서 지연(latency)를 최고화 하기 위해 설정
+	// 옵션 설정하면 TCP소켓이 데이터를 즉시 보내도록 설정
+	bool enable = true;
+	setsockopt(acceptSocket, IPPROTO_TCP, TCP_NODELAY, (char*)&enable, sizeof(enable));
+
+	int sendBufferSize, recvBufferSize;
+	int optionLen = sizeof(sendBufferSize);
+	getsockopt(acceptSocket, SOL_SOCKET, SO_SNDBUF, (char*)&sendBufferSize, &optionLen);
+	printf("송신 버퍼 크기 : %d\n", sendBufferSize);
+
+	optionLen = sizeof(recvBufferSize);
+	getsockopt(acceptSocket, SOL_SOCKET, SO_RCVBUF, (char*)&recvBufferSize, &optionLen);
+	printf("수신 버퍼 크기 : %d\n", recvBufferSize);
+	*/
+
+
+	// IOCP 핸들 생성, 초기화
+	HANDLE iocpHandle = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, NULL, NULL);
+	thread t(AcceptThread, iocpHandle);
+
+	ULONG_PTR key = 0;
+	CreateIoCompletionPort((HANDLE)listenSocket, iocpHandle, key, 0);
+
+	char lpOutputBuf[1024];
+
+	WSAOVERLAPPED overlapped = {};
+
+	// 비동기 Accept
+	// lpfnAcceptEx(listen 소켓, accept 소켓, 설정값..., overlapped)
+	if (lpfnAcceptEx(listenSocket, acceptSocket, lpOutputBuf, 0, sizeof(SOCKADDR_IN) + 16, sizeof(SOCKADDR_IN) + 16, &dwBytes, &overlapped) == FALSE)
+	{
+		if (WSAGetLastError() != ERROR_IO_PENDING)
+		{
+			printf("AcceptEx failed with error : %d\n", WSAGetLastError());
+			closesocket(acceptSocket);
+			closesocket(listenSocket);
+			WSACleanup();
+			return 1;
+		}
+	}
+
+
+	t.join();
+
+	// 소켓 닫기
+	closesocket(listenSocket);
+	// 해제
+	WSACleanup();
+
+	return 0;
+}
