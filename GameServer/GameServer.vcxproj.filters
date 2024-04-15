@@ -2,10 +2,10 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="pch">
-      <UniqueIdentifier>{eae6ee06-41b4-42b0-bf8c-d86639c9d400}</UniqueIdentifier>
+      <UniqueIdentifier>{2a5af4fd-d0ad-49b8-81e3-f3ac2a4f0a43}</UniqueIdentifier>
     </Filter>
     <Filter Include="Main">
-      <UniqueIdentifier>{ec36cf63-9cec-4bda-9100-e8e033357fb6}</UniqueIdentifier>
+      <UniqueIdentifier>{422c669e-5a19-4345-9b5c-72ebd5c9790c}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

@@ -2,10 +2,16 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="pch">
-      <UniqueIdentifier>{a1859d2d-cd9f-4375-a897-878b188282cb}</UniqueIdentifier>
+      <UniqueIdentifier>{a9f2b9e1-474f-4dee-800b-728634f58f78}</UniqueIdentifier>
     </Filter>
     <Filter Include="Network">
-      <UniqueIdentifier>{29886488-9fe0-44d7-a2d5-027cfc207d22}</UniqueIdentifier>
+      <UniqueIdentifier>{df116954-94f8-4f90-90e1-0eec07157719}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Network\Service">
+      <UniqueIdentifier>{aa93c161-966c-41cf-82c5-35da4701d8f6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Network\IocpObj">
+      <UniqueIdentifier>{7759c105-b93c-40a4-b7ad-b752b9a27792}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -15,17 +21,32 @@
     <ClCompile Include="CorePch.cpp">
       <Filter>pch</Filter>
     </ClCompile>
-    <ClCompile Include="Service.cpp">
-      <Filter>Network</Filter>
-    </ClCompile>
-    <ClCompile Include="Listener.cpp">
-      <Filter>Network</Filter>
-    </ClCompile>
     <ClCompile Include="SocketHelper.cpp">
       <Filter>Network</Filter>
     </ClCompile>
     <ClCompile Include="IocpCore.cpp">
       <Filter>Network</Filter>
+    </ClCompile>
+    <ClCompile Include="IocpEvent.cpp">
+      <Filter>Network</Filter>
+    </ClCompile>
+    <ClCompile Include="Service.cpp">
+      <Filter>Network\Service</Filter>
+    </ClCompile>
+    <ClCompile Include="IocpObj.cpp">
+      <Filter>Network\IocpObj</Filter>
+    </ClCompile>
+    <ClCompile Include="Listener.cpp">
+      <Filter>Network\IocpObj</Filter>
+    </ClCompile>
+    <ClCompile Include="Session.cpp">
+      <Filter>Network\IocpObj</Filter>
+    </ClCompile>
+    <ClCompile Include="ClientService.cpp">
+      <Filter>Network\Service</Filter>
+    </ClCompile>
+    <ClCompile Include="ServerService.cpp">
+      <Filter>Network\Service</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -35,17 +56,32 @@
     <ClInclude Include="CorePch.h">
       <Filter>pch</Filter>
     </ClInclude>
-    <ClInclude Include="Service.h">
-      <Filter>Network</Filter>
-    </ClInclude>
-    <ClInclude Include="Listener.h">
-      <Filter>Network</Filter>
-    </ClInclude>
     <ClInclude Include="SocketHelper.h">
       <Filter>Network</Filter>
     </ClInclude>
     <ClInclude Include="IocpCore.h">
       <Filter>Network</Filter>
+    </ClInclude>
+    <ClInclude Include="IocpEvent.h">
+      <Filter>Network</Filter>
+    </ClInclude>
+    <ClInclude Include="Service.h">
+      <Filter>Network\Service</Filter>
+    </ClInclude>
+    <ClInclude Include="IocpObj.h">
+      <Filter>Network\IocpObj</Filter>
+    </ClInclude>
+    <ClInclude Include="Listener.h">
+      <Filter>Network\IocpObj</Filter>
+    </ClInclude>
+    <ClInclude Include="Session.h">
+      <Filter>Network\IocpObj</Filter>
+    </ClInclude>
+    <ClInclude Include="ServerService.h">
+      <Filter>Network\Service</Filter>
+    </ClInclude>
+    <ClInclude Include="ClientService.h">
+      <Filter>Network\Service</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

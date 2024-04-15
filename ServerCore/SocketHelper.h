@@ -10,9 +10,11 @@ public:
 	static bool SetIoControl(SOCKET socket, GUID guid, LPVOID* func);
 	static SOCKET CreateSocket();
 public:
-	// 家南 可记甸
+	//家南 可记甸
 	static bool SetReuseAddress(SOCKET socket, bool enable);
 	static bool SetLinger(SOCKET socket, u_short onOff, u_short time);
+	//ListenSocket 沥焊甸阑 AcceptSocket俊 诀单捞磐
+	static bool SetUpdateAcceptSocket(SOCKET acceptSocket, SOCKET ListenSocket);
 public:
 	static bool Bind(SOCKET socket, SOCKADDR_IN sockAddr);
 	static bool Listen(SOCKET socket, int backlog = SOMAXCONN);
@@ -24,3 +26,4 @@ static inline bool SetSocketOpt(SOCKET socket, int level, int optName, T optVal)
 {
 	return setsockopt(socket, level, optName, (char*)&optVal, sizeof(T)) != SOCKET_ERROR;
 }
+

@@ -12,7 +12,7 @@ using namespace std;
 //IOCP 타입을 만듬
 enum  IOCP_TYPE
 {
-	NONE,
+	NONE, 
 	CONNECT,
 	DISCONNECT,
 
@@ -21,7 +21,7 @@ enum  IOCP_TYPE
 //IocpEvnet을 만들어서 IOCP_TYPE을 추가
 struct IocpEvent
 {
-	WSAOVERLAPPED overlapped = {};
+	WSAOVERLAPPED overlapped = {};	   
 	IOCP_TYPE type = NONE;
 
 }; //[WSAOVERLAPPED...   ][IOCP_TYPE.. ]
@@ -76,7 +76,7 @@ int main()
 		return 1;
 	}
 
-
+	
 	SOCKET connectSocket = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
 	if (connectSocket == INVALID_SOCKET)
 	{
@@ -89,7 +89,7 @@ int main()
 	DWORD dwBytes;
 	LPFN_CONNECTEX lpfnConnectEx = NULL;
 	GUID guidConnectEx = WSAID_CONNECTEX;
-	if (WSAIoctl(connectSocket, SIO_GET_EXTENSION_FUNCTION_POINTER, &guidConnectEx, sizeof(guidConnectEx),
+	if (WSAIoctl(connectSocket, SIO_GET_EXTENSION_FUNCTION_POINTER, &guidConnectEx, sizeof(guidConnectEx), 
 		&lpfnConnectEx, sizeof(lpfnConnectEx), &dwBytes, NULL, NULL) == SOCKET_ERROR)
 	{
 		printf("WSAIoctl ConnectEx failed with error : %d\n", WSAGetLastError());
@@ -98,18 +98,8 @@ int main()
 		return 1;
 	}
 
+	u_long iMode = 1;
 
-	//DisconnectdEx 함수포인터 로드
-	LPFN_DISCONNECTEX lpfnDisconnectEx = NULL;
-	GUID guidDisconnectEx = WSAID_DISCONNECTEX;
-	if (WSAIoctl(connectSocket, SIO_GET_EXTENSION_FUNCTION_POINTER, &guidDisconnectEx, sizeof(guidDisconnectEx),
-		&lpfnDisconnectEx, sizeof(lpfnDisconnectEx), &dwBytes, NULL, NULL) == SOCKET_ERROR)
-	{
-		printf("WSAIoctl DisonnectEx failed with error : %d\n", WSAGetLastError());
-		closesocket(connectSocket);
-		WSACleanup();
-		return 1;
-	}
 
 	SOCKADDR_IN serverService;
 	memset(&serverService, 0, sizeof(serverService));
@@ -121,7 +111,7 @@ int main()
 	memset(&clientService, 0, sizeof(clientService));
 	clientService.sin_family = AF_INET;
 	clientService.sin_addr.s_addr = htonl(INADDR_ANY);
-	clientService.sin_port = htons(0);
+	clientService.sin_port = htons(0); 
 
 	if (bind(connectSocket, (SOCKADDR*)&clientService, sizeof(clientService)) == SOCKET_ERROR)
 	{
@@ -155,30 +145,14 @@ int main()
 
 	}
 
-	IocpEvent* disConnectEvent = new IocpEvent;
-	disConnectEvent->type = DISCONNECT;
-
-	if (!lpfnDisconnectEx(connectSocket, &disConnectEvent->overlapped, 0, 0))
-	{
-		if (WSAGetLastError() != ERROR_IO_PENDING)
-		{
-			printf("DisConnectEx failed with error : %d\n", WSAGetLastError());
-			closesocket(connectSocket);
-			WSACleanup();
-			return 1;
-		}
-
-	}
-
 	while (true)
 	{
 
 	}
 
 
-
 	t.join();
-
+	
 	closesocket(connectSocket);
 	WSACleanup();
 

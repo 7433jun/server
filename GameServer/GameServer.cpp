@@ -1,46 +1,42 @@
 #include "pch.h"
-#include <Service.h>
-#include <Listener.h>
+#include <ServerService.h>
+#include <Session.h>
 
-SOCKET listenSocket;
-LPFN_ACCEPTEX lpfnAcceptEx = nullptr;
-GUID guidAcceptEx = WSAID_ACCEPTEX;
-
-static void AcceptThread(HANDLE iocpHandle)
+class ServerSession : public Session
 {
-	DWORD bytesTransferred = 0;
-	ULONG_PTR key = 0;
-	WSAOVERLAPPED* overlapped = {};
-
-	while (true)
+	virtual void OnConnected() override
 	{
-		printf("Waiting...\n");
-		if (GetQueuedCompletionStatus(iocpHandle, &bytesTransferred, &key, (LPOVERLAPPED*)&overlapped, INFINITE))
-		{
-			printf("Client connected....\n");
-
-			
-		}
+		cout << "On Connect È£Ãâ" << endl;
 	}
-}
+};
 
 
 int main()
 {
-
 	printf("==== SERVER ====\n");
 
-	Service service(L"127.0.0.1", 27015);
+	Service* service = new ServerService(L"127.0.0.1", 27015, []() {return new ServerSession; });
 
-	Listener listener;
 
-	thread t(AcceptThread, listener.GetHandle());
+	if (!service->Start())
+	{
+		printf("Server Service Error\n");
+		return 1;
+	}
 
-	listener.StartAccept(service);
+	thread t([=]()
+		{
+			while (true)
+			{
+				service->ObserveIO();
+			}
+		}
+	);
+
 
 	t.join();
 
-	closesocket(listenSocket);
+	delete service;
 
 	return 0;
 }

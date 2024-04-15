@@ -1,18 +1,26 @@
 #pragma once
+#include "IocpObj.h"
 
-class Listener
+class ServerService;
+class AcceptEvent;
+
+class Listener : public IocpObj
 {
 private:
+	ServerService* serverService = nullptr;
 	SOCKET socket = INVALID_SOCKET;
-	//HANDLE iocpHandle = NULL;
-	//LPFN_ACCEPTEX lpfnAcceptEx = NULL;
-	//GUID guidAcceptEx = WSAID_ACCEPTEX;
-
 public:
 	Listener() = default;
-	~Listener();
+	virtual ~Listener();
 public:
-	bool StartAccept(class Service& service);
+	HANDLE GetHandle() override { return (HANDLE)socket; };
+	void ObserveIO(IocpEvent* iocpEvent, DWORD bytesTransferred) override;
+
+public:
+	bool StartAccept(ServerService* service);
+	void RegisterAccept(AcceptEvent* acceptEvent);
+	void ProcessAccept(AcceptEvent* acceptEvent);
 	void CloseSocket();
+
 };
 

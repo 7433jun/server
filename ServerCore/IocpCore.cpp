@@ -1,5 +1,8 @@
 #include "pch.h"
 #include "IocpCore.h"
+#include "IocpEvent.h"
+#include "Session.h"
+#include "IocpObj.h"
 
 IocpCore::IocpCore()
 {
@@ -11,7 +14,36 @@ IocpCore::~IocpCore()
 	CloseHandle(iocpHandle);
 }
 
-void IocpCore::Register(HANDLE socket, ULONG_PTR key)
+//¼öÁ¤
+bool IocpCore::Register(IocpObj* iocpObj)
 {
-	CreateIoCompletionPort((HANDLE)socket, iocpHandle, key, 0);
+	return CreateIoCompletionPort(iocpObj->GetHandle(), iocpHandle, 0, 0);
+}
+
+bool IocpCore::ObserveIO(DWORD time)
+{
+	DWORD bytesTransferred = 0;
+	ULONG_PTR key = 0;
+	IocpEvent* iocpEvent = nullptr;
+
+	printf("Waiting...\n");
+	if (GetQueuedCompletionStatus(iocpHandle, &bytesTransferred, &key, (LPOVERLAPPED*)&iocpEvent, time))
+	{
+		IocpObj* iocpObj = iocpEvent->iocpObj;
+		iocpObj->ObserveIO(iocpEvent, bytesTransferred);
+	}
+	else
+	{
+
+		switch (GetLastError())
+		{
+		case WAIT_TIMEOUT:
+			return false;
+		default:
+			break;
+		}
+		return false;
+	}
+
+	return true;
 }
