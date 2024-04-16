@@ -4,7 +4,8 @@
 #include "IocpCore.h"
 #include "Session.h"
 
-Service::Service(ServiceType type, wstring ip, uint16 port, SessionFactory factory)	: serviceType(type), sessionFactory(factory)
+
+Service::Service(ServiceType type, wstring ip, uint16 port, SessionFactory factory): serviceType(type), sessionFactory(factory)
 {
 	if (!SocketHelper::StartUp())
 		return;
@@ -33,21 +34,27 @@ Service::~Service()
 
 Session* Service::CreateSession()
 {
+	//session만들어 주고
 	Session* session = sessionFactory();
-	
+
+	session->SetService(this);
+
 	if (!iocpCore->Register(session))
 		return nullptr;
 
 	return session;
 }
 
+//추가
 void Service::AddSession(Session* session)
 {
 	unique_lock<shared_mutex> lock(rwLock);
 	sessionCount++;
 	sessions.insert(session);
+
 }
 
+//제거
 void Service::RemoveSession(Session* session)
 {
 	unique_lock<shared_mutex> lock(rwLock);

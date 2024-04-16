@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Listener.h"
-#include "ServerService.h"
+#include "ServerService.h" 
 #include "SocketHelper.h"
 #include "IocpCore.h"
 #include "Session.h"
@@ -14,7 +14,6 @@ Listener::~Listener()
 
 bool Listener::StartAccept(ServerService* service)
 {
-	// 처음 생성될떄 받고
 	serverService = service;
 
 	socket = SocketHelper::CreateSocket();
@@ -48,11 +47,11 @@ bool Listener::StartAccept(ServerService* service)
 
 }
 
+
 void Listener::RegisterAccept(AcceptEvent* acceptEvent)
 {
-	//Session* session = new Session;
 	Session* session = serverService->CreateSession();
-	session->SetService(serverService);
+	//session에 serverService 등록 
 	acceptEvent->Init();
 	acceptEvent->session = session;
 
@@ -82,23 +81,16 @@ void Listener::ProcessAccept(AcceptEvent* acceptEvent)
 
 	SOCKADDR_IN sockAddr;
 	int sockAddrSize = sizeof(sockAddr);
-	//AcceptSocket을 넣어주면 sockAddr에다가 클라의 주소 정보를 넣어줌
-	//SOCKET_ERROR라면 문제 있는거니까 에러 처리
 	if (getpeername(session->GetSocket(),(SOCKADDR*)&sockAddr, &sockAddrSize) == SOCKET_ERROR)
 	{
-		//에러 처리
 		printf("getpeername Error\n");
 		RegisterAccept(acceptEvent);
 		return;
 	}
 
-	//Session에 클라의 주소를 업데이트
 	session->SetSockAddr(sockAddr);
-	//연결된거니까 진행해줘라
 	session->ProcessConnect();
 
-	//다시 낚시줄을 던진다 == 다른 클라가 접속할수 있도록 등록
-	//물고기 == 클라
 	RegisterAccept(acceptEvent);
 }
 

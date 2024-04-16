@@ -12,7 +12,6 @@ enum class ServiceType : uint8
 class IocpCore;
 class Session;
 
-// Session상속받은 애들 반환하는 람다함수
 using SessionFactory = function<Session* (void)>;
 
 class Service
@@ -27,6 +26,7 @@ protected:
 	int sessionCount = 0;
 	SessionFactory sessionFactory;
 public:
+	//Service가 생성될때 SessionFactory도 할당
 	Service(ServiceType type, wstring ip, uint16 port, SessionFactory factory);
 	virtual ~Service();
 public:
@@ -35,11 +35,12 @@ public:
 	IocpCore* GetIocpCore() const { return iocpCore; }
 	int GetSessionCount() const { return sessionCount; }
 public:
-	void SetSessionFactory(SessionFactory func) { sessionFactory = func; }
+	void SetSessionFactory(SessionFactory func) { sessionFactory = func; }	  //??
 public:
 	Session* CreateSession();
 	void AddSession(Session* session);
 	void RemoveSession(Session* session);
+
 public:
 	virtual bool Start() abstract;
 	bool ObserveIO(DWORD time = INFINITE);

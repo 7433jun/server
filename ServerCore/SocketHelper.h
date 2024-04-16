@@ -2,7 +2,9 @@
 class SocketHelper
 {
 public:
+	static LPFN_CONNECTEX ConnectEx;
 	static LPFN_ACCEPTEX AcceptEx;
+	static LPFN_DISCONNECTEX DisconnectEx;
 public:
 	static bool StartUp();
 	static bool CleanUp();
@@ -17,6 +19,7 @@ public:
 	static bool SetUpdateAcceptSocket(SOCKET acceptSocket, SOCKET ListenSocket);
 public:
 	static bool Bind(SOCKET socket, SOCKADDR_IN sockAddr);
+	static bool BindAny(SOCKET socket, uint16 port);
 	static bool Listen(SOCKET socket, int backlog = SOMAXCONN);
 	static void CloseSocket(SOCKET& socket);
 };

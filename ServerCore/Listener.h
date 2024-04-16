@@ -7,6 +7,7 @@ class AcceptEvent;
 class Listener : public IocpObj
 {
 private:
+	// ServerService 추가
 	ServerService* serverService = nullptr;
 	SOCKET socket = INVALID_SOCKET;
 public:
@@ -17,6 +18,7 @@ public:
 	void ObserveIO(IocpEvent* iocpEvent, DWORD bytesTransferred) override;
 
 public:
+	//ServerService로 변경
 	bool StartAccept(ServerService* service);
 	void RegisterAccept(AcceptEvent* acceptEvent);
 	void ProcessAccept(AcceptEvent* acceptEvent);

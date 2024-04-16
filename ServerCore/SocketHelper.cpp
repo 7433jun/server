@@ -1,7 +1,9 @@
 #include "pch.h"
 #include "SocketHelper.h"
 
+LPFN_CONNECTEX SocketHelper::ConnectEx = nullptr;
 LPFN_ACCEPTEX SocketHelper::AcceptEx = nullptr;
+LPFN_DISCONNECTEX SocketHelper::DisconnectEx = nullptr;
 
 bool SocketHelper::StartUp()
 {
@@ -10,7 +12,9 @@ bool SocketHelper::StartUp()
         return false;
 
     SOCKET tempSocket = CreateSocket();
+    SetIoControl(tempSocket, WSAID_CONNECTEX, (LPVOID*)&ConnectEx);
     SetIoControl(tempSocket, WSAID_ACCEPTEX, (LPVOID*)&AcceptEx);
+    SetIoControl(tempSocket, WSAID_DISCONNECTEX, (LPVOID*)&DisconnectEx);
 
     CloseSocket(tempSocket);
 }
@@ -53,6 +57,17 @@ bool SocketHelper::SetUpdateAcceptSocket(SOCKET acceptSocket, SOCKET ListenSocke
 
 bool SocketHelper::Bind(SOCKET socket, SOCKADDR_IN sockAddr)
 {
+    return bind(socket, (SOCKADDR*)&sockAddr, sizeof(sockAddr)) != SOCKET_ERROR;
+}
+
+bool SocketHelper::BindAny(SOCKET socket, uint16 port)
+{
+    SOCKADDR_IN sockAddr;
+    memset(&sockAddr, 0, sizeof(sockAddr));
+    sockAddr.sin_family = AF_INET;
+    sockAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    sockAddr.sin_port = htons(port);
+
     return bind(socket, (SOCKADDR*)&sockAddr, sizeof(sockAddr)) != SOCKET_ERROR;
 }
 

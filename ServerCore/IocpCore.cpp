@@ -27,14 +27,18 @@ bool IocpCore::ObserveIO(DWORD time)
 	IocpEvent* iocpEvent = nullptr;
 
 	printf("Waiting...\n");
+	//Recv이벤트가 발생했을경우 wakeup
 	if (GetQueuedCompletionStatus(iocpHandle, &bytesTransferred, &key, (LPOVERLAPPED*)&iocpEvent, time))
 	{
+		//iocpEvent는 RecvEvent
+		//RecvEvent의 iocpObj는 Session
 		IocpObj* iocpObj = iocpEvent->iocpObj;
+		//Sesssion->ObserveIO 호출
 		iocpObj->ObserveIO(iocpEvent, bytesTransferred);
 	}
 	else
 	{
-
+							  
 		switch (GetLastError())
 		{
 		case WAIT_TIMEOUT:
