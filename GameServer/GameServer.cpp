@@ -4,6 +4,12 @@
 
 class ServerSession : public Session
 {
+public:
+	~ServerSession()
+	{
+		cout << "ServerSession Destroy" << endl;
+	}
+
 	virtual void OnConnected() override
 	{
 		cout << "On Connect È£Ãâ" << endl;
@@ -33,7 +39,7 @@ int main()
 {
 	printf("==== SERVER ====\n");
 
-	Service* service = new ServerService(L"127.0.0.1", 27015, []() {return new ServerSession; });
+	shared_ptr<Service> service = make_shared<ServerService>(L"127.0.0.1", 27015, []() {return make_shared<ServerSession>(); });
 
 
 	if (!service->Start())
@@ -53,8 +59,6 @@ int main()
 
 
 	t.join();
-
-	delete service;
 
 	return 0;
 }

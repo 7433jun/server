@@ -8,7 +8,7 @@ class Listener : public IocpObj
 {
 private:
 	// ServerService 추가
-	ServerService* serverService = nullptr;
+	shared_ptr<ServerService> serverService = nullptr;
 	SOCKET socket = INVALID_SOCKET;
 public:
 	Listener() = default;
@@ -19,7 +19,7 @@ public:
 
 public:
 	//ServerService로 변경
-	bool StartAccept(ServerService* service);
+	bool StartAccept(shared_ptr<ServerService> service);
 	void RegisterAccept(AcceptEvent* acceptEvent);
 	void ProcessAccept(AcceptEvent* acceptEvent);
 	void CloseSocket();

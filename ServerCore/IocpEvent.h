@@ -10,11 +10,14 @@ enum class EventType : uint8
 
 };
 
+class IocpObj;
+class Session;
+
 class IocpEvent : public OVERLAPPED
 {
 public:
 	EventType eventType;
-	class IocpObj* iocpObj;
+	shared_ptr<IocpObj> iocpObj;
 public:
 	IocpEvent(EventType type);
 public:
@@ -29,16 +32,16 @@ public:
 };
 
 //DisconnectEvent Ãß°¡
-class DisonnectEvent : public IocpEvent
+class DisconnectEvent : public IocpEvent
 {
 public:
-	DisonnectEvent() : IocpEvent(EventType::DISCONNECT) {}
+	DisconnectEvent() : IocpEvent(EventType::DISCONNECT) {}
 };
 
 class AcceptEvent : public IocpEvent
 {
 public:
-	class Session* session = nullptr;
+	shared_ptr<Session> session = nullptr;
 public:
 	AcceptEvent() : IocpEvent(EventType::ACCEPT) {}
 };

@@ -9,7 +9,8 @@ ServerService::ServerService(wstring ip, uint16 port, SessionFactory factory) : 
 
 bool ServerService::Start()
 {
-	listener = new Listener;
-	return listener->StartAccept(this);
+	// 스마트 포인터에 할당
+	listener = make_shared<Listener>();
+	return listener->StartAccept(static_pointer_cast<ServerService>(shared_from_this()));
 }
 

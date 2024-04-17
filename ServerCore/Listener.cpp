@@ -12,7 +12,7 @@ Listener::~Listener()
     CloseSocket();
 }
 
-bool Listener::StartAccept(ServerService* service)
+bool Listener::StartAccept(shared_ptr<ServerService> service)
 {
 	serverService = service;
 
@@ -27,7 +27,8 @@ bool Listener::StartAccept(ServerService* service)
 		return false;
 
 	ULONG_PTR key = 0;
-	service->GetIocpCore()->Register(this);
+	if (service->GetIocpCore()->Register(shared_from_this()) == false)
+		return false;
 
 
 	if (!SocketHelper::Bind(socket, service->GetSockAddr()))
@@ -40,7 +41,7 @@ bool Listener::StartAccept(ServerService* service)
 	printf("listening...\n");
 
 	AcceptEvent* acceptEvent = new AcceptEvent();
-	acceptEvent->iocpObj = this;
+	acceptEvent->iocpObj = shared_from_this();
 	RegisterAccept(acceptEvent);
 
 	return true;
@@ -50,7 +51,7 @@ bool Listener::StartAccept(ServerService* service)
 
 void Listener::RegisterAccept(AcceptEvent* acceptEvent)
 {
-	Session* session = serverService->CreateSession();
+	shared_ptr<Session> session = serverService->CreateSession();
 	//session¿¡ serverService µî·Ï 
 	acceptEvent->Init();
 	acceptEvent->session = session;
@@ -71,7 +72,7 @@ void Listener::ObserveIO(IocpEvent* iocpEvent, DWORD bytesTransferred)
 
 void Listener::ProcessAccept(AcceptEvent* acceptEvent)
 {
-	Session* session = acceptEvent->session;
+	shared_ptr<Session> session = acceptEvent->session;
 	if (!SocketHelper::SetUpdateAcceptSocket(session->GetSocket(), socket))
 	{
 		printf("SetUpdateAcceptSocket Error\n");
