@@ -13,6 +13,9 @@
     <Filter Include="Network\IocpObj">
       <UniqueIdentifier>{7759c105-b93c-40a4-b7ad-b752b9a27792}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Network\Buffer">
+      <UniqueIdentifier>{60ee3b89-f404-4c65-a1a3-dd9bb9b4bfbd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -48,6 +51,12 @@
     <ClCompile Include="ServerService.cpp">
       <Filter>Network\Service</Filter>
     </ClCompile>
+    <ClCompile Include="RecvBuffer.cpp">
+      <Filter>Network\Buffer</Filter>
+    </ClCompile>
+    <ClCompile Include="SendBuffer.cpp">
+      <Filter>Network\Buffer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -82,6 +91,12 @@
     </ClInclude>
     <ClInclude Include="ClientService.h">
       <Filter>Network\Service</Filter>
+    </ClInclude>
+    <ClInclude Include="RecvBuffer.h">
+      <Filter>Network\Buffer</Filter>
+    </ClInclude>
+    <ClInclude Include="SendBuffer.h">
+      <Filter>Network\Buffer</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
