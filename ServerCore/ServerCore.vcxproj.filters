@@ -57,6 +57,12 @@
     <ClCompile Include="SendBuffer.cpp">
       <Filter>Network\Buffer</Filter>
     </ClCompile>
+    <ClCompile Include="SendBufferManager.cpp">
+      <Filter>Network\Buffer</Filter>
+    </ClCompile>
+    <ClCompile Include="SendBufferChunk.cpp">
+      <Filter>Network\Buffer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h">
@@ -96,6 +102,12 @@
       <Filter>Network\Buffer</Filter>
     </ClInclude>
     <ClInclude Include="SendBuffer.h">
+      <Filter>Network\Buffer</Filter>
+    </ClInclude>
+    <ClInclude Include="SendBufferManager.h">
+      <Filter>Network\Buffer</Filter>
+    </ClInclude>
+    <ClInclude Include="SendBufferChunk.h">
       <Filter>Network\Buffer</Filter>
     </ClInclude>
   </ItemGroup>

@@ -4,7 +4,7 @@
 #include "Service.h"
 #include "SendBuffer.h"
 
-Session::Session() : recvBuffer(Buffer_SIZE)
+Session::Session() : recvBuffer(BUFFER_SIZE)
 {
 	socket = SocketHelper::CreateSocket();
 }
@@ -22,16 +22,25 @@ bool Session::Connect()
 
 void Session::Send(shared_ptr<SendBuffer> sendBuffer)
 {
-	// Lock을 잡고
-	unique_lock<shared_mutex> lock(rwLock);
+	// 연결 안되어 있음 return
+	if (!IsConnected())
+		return;
 
-	// sendQueue에 처리할 sendBuffer추가 // 일감 추가
-	sendQueue.push(sendBuffer);
+	// 모든 스레드들의 기본값
+	bool registerSend = false;
 
-	// 내가 처음 send를 하는 스레드 라면
-	if (sendRegistered.exchange(true) == false)
 	{
+		unique_lock<shared_mutex> lock(rwLock);
+		sendQueue.push(sendBuffer);
+		if (sendRegistered.exchange(true) == false)
+		{
+			registerSend = true;
+		}
+	}// Lock 풀림
 
+	// 최초의 접근 한 애만 접근
+	if (registerSend)
+	{
 		RegisterSend();
 	}
 }
@@ -45,7 +54,6 @@ void Session::Disconnect(const WCHAR* cause)
 	wprintf(L"Disconnect reason : %ls\n", cause);
 
 	OnDisconnected();
-	//스마트 포인터로 변환 : 나의 주소
 	GetService()->RemoveSession(GetSession());
 
 	RegisterDisconnect();
@@ -87,37 +95,25 @@ bool Session::RegisterConnect()
 
 void Session::RegisterSend()
 {
-	if (!IsConnected())
-		return;
-
-	// SendEvent 초기화
 	sendEvent.Init();
-	// SendEvent의 iocp를 session으로
 	sendEvent.iocpObj = shared_from_this();
 
 	int writeSize = 0;
-	// sendQueue의 데이터가 남아 있지 않을때까지 돌림
 	while (!sendQueue.empty())
 	{
-		//sendQueue의 앞부분부터 pop시키기 위해서
 		shared_ptr<SendBuffer> sendBuffer = sendQueue.front();
 
-		// 얼마나 사용했는지 크기 주기
 		writeSize += sendBuffer->WriteSize();
 
 		sendQueue.pop();
 
-		// SendEvent에 들어 있는 값들을 밀어 넣음
 		sendEvent.sendBuffers.push_back(sendBuffer);
 	}
 
-	// 한꺼번에 데이터를 보내기 위해
 	vector<WSABUF> wsaBufs;
 
-	// SendEvent의 sendBuffers크기 만큼 공간 예약
 	wsaBufs.reserve(sendEvent.sendBuffers.size());
 
-	// SendEvent의 sendBuffers 순회하면서 등록
 	for (auto sendBuffer : sendEvent.sendBuffers)
 	{
 		WSABUF wsaBuf;
@@ -232,9 +228,7 @@ void Session::ProcessConnect()
 
 void Session::ProcessSend(int numOfBytes)
 {
-	// null로 밀고
 	sendEvent.iocpObj = nullptr;
-	// SendEvent의 sendBuffers 깨끗이
 	sendEvent.sendBuffers.clear();
 
 

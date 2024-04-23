@@ -10,7 +10,7 @@ class Service;
 class Session : public IocpObj
 {
 	friend class Listener;
-	enum { Buffer_SIZE = 0x10000 };
+	enum { BUFFER_SIZE = 0x10000 };
 
 private:
 	shared_mutex rwLock;

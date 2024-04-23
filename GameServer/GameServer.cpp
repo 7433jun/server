@@ -1,6 +1,7 @@
 #include "pch.h"
 #include <ServerService.h>
 #include <Session.h>
+#include <SendBufferManager.h> 
 
 class ServerSession : public Session
 {
@@ -12,33 +13,35 @@ public:
 
 	virtual void OnConnected() override
 	{
-		cout << "On Connect 호출" << endl;
 	}
 
 	virtual int OnRecv(BYTE* buffer, int len) override
 	{
-		cout << "OnRecv : " << buffer << ", On Recv Len : " << len << endl;
+		shared_ptr<SendBuffer> sendBuffer = SendBufferManager::Get().Open(4096);
+		memcpy(sendBuffer->GetBuffer(), buffer, len);
+		if (sendBuffer->Close(len))
+		{
+			Send(sendBuffer);
+		}
 
-		Send(buffer, len);
 		return len;
 	}
 
 	virtual void OnSend(int len) override
 	{
-		cout << "OnSend Len : " << len << endl;
 	}
 
 	virtual void OnDisconnected() override
 	{
 		cout << "On DisConnect 호출" << endl;
 	}
+
 };
 
 
 int main()
 {
 	printf("==== SERVER ====\n");
-
 	shared_ptr<Service> service = make_shared<ServerService>(L"127.0.0.1", 27015, []() {return make_shared<ServerSession>(); });
 
 

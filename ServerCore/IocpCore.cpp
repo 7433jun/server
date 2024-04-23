@@ -26,7 +26,7 @@ bool IocpCore::ObserveIO(DWORD time)
 	ULONG_PTR key = 0;
 	IocpEvent* iocpEvent = nullptr;
 
-	printf("Waiting...\n");
+	//printf("Waiting...\n");
 	//Recv이벤트가 발생했을경우 wakeup
 	if (GetQueuedCompletionStatus(iocpHandle, &bytesTransferred, &key, (LPOVERLAPPED*)&iocpEvent, time))
 	{
