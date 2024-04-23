@@ -60,8 +60,6 @@ bool Session::RegisterConnect()
 	if (GetService()->GetServiceType() != ServiceType::CLIENT)
 		return false;
 
-	// connect Socket일 경우 reuse 걸어준다
-	// accept socket같은 경우에는 listener에서 listener socket 값을 업데이트 해줌
 	if (!SocketHelper::SetReuseAddress(socket, true))
 		return false;
 
@@ -69,7 +67,6 @@ bool Session::RegisterConnect()
 		return false;
 
 	connectEvent.Init();
-	//스마트 포인터로 변환 : 나와 부모 주소
 	connectEvent.iocpObj = shared_from_this();
 
 	DWORD numOfBytes = 0;
@@ -88,41 +85,14 @@ bool Session::RegisterConnect()
 	return true;
 }
 
-void Session::RegisterRecv()
-{
-	if (!IsConnected())
-		return;
-
-	recvEvent.Init();
-	//스마트 포인터로 변환 : 나와 부모 주소
-	recvEvent.iocpObj = shared_from_this();
-
-	WSABUF wsaBuf;
-	wsaBuf.buf = (char*)recvBuffer.WritePos();
-	wsaBuf.len = recvBuffer.FreeSize();
-
-	DWORD recvLen = 0;
-	DWORD flags = 0;
-
-	if (WSARecv(socket, &wsaBuf, 1, &recvLen, &flags, &recvEvent, nullptr) == SOCKET_ERROR)
-	{
-		int errorCode = WSAGetLastError();
-		if (errorCode != WSA_IO_PENDING)
-		{
-			HandleError(errorCode);
-			recvEvent.iocpObj = nullptr;
-		}
-
-	}
-
-}
-
 void Session::RegisterSend()
 {
 	if (!IsConnected())
 		return;
 
+	// SendEvent 초기화
 	sendEvent.Init();
+	// SendEvent의 iocp를 session으로
 	sendEvent.iocpObj = shared_from_this();
 
 	int writeSize = 0;
@@ -147,6 +117,7 @@ void Session::RegisterSend()
 	// SendEvent의 sendBuffers크기 만큼 공간 예약
 	wsaBufs.reserve(sendEvent.sendBuffers.size());
 
+	// SendEvent의 sendBuffers 순회하면서 등록
 	for (auto sendBuffer : sendEvent.sendBuffers)
 	{
 		WSABUF wsaBuf;
@@ -158,24 +129,55 @@ void Session::RegisterSend()
 	DWORD sendLen = 0;
 	DWORD flags = 0;
 
+	// 한꺼번에 여러개 보내기
 	if (WSASend(socket, wsaBufs.data(), (DWORD)wsaBufs.size(), &sendLen, flags, &sendEvent, nullptr) == SOCKET_ERROR)
 	{
 		int errorCode = WSAGetLastError();
 		if (errorCode != WSA_IO_PENDING)
 		{
 			HandleError(errorCode);
+			// Session에 있으니까
 			sendEvent.iocpObj = nullptr;
+			// SendEvent의 sendBuffers 깨끗이
 			sendEvent.sendBuffers.clear();
+			// sendRegistered 상태를 false
 			sendRegistered.store(false);
 		}
 
 	}
 }
 
+void Session::RegisterRecv()
+{
+	if (!IsConnected())
+		return;
+
+	recvEvent.Init();
+	recvEvent.iocpObj = shared_from_this();
+
+	WSABUF wsaBuf;
+	wsaBuf.buf = (char*)recvBuffer.WritePos();
+	wsaBuf.len = recvBuffer.FreeSize();
+
+	DWORD recvLen = 0;
+	DWORD flags = 0;
+
+	if (WSARecv(socket, &wsaBuf, 1, &recvLen, &flags, &recvEvent, nullptr) == SOCKET_ERROR)
+	{
+		int errorCode = WSAGetLastError();
+		if (errorCode != WSA_IO_PENDING)
+		{
+			HandleError(errorCode);
+			recvEvent.iocpObj = nullptr;
+		}
+
+	}
+
+}
+
 bool Session::RegisterDisconnect()
 {
 	disconnectEvent.Init();
-	//스마트 포인터로 변환 : 나와 부모 주소
 	disconnectEvent.iocpObj = shared_from_this();
 
 	if (SocketHelper::DisconnectEx(socket, &disconnectEvent, TF_REUSE_SOCKET, 0))
@@ -203,6 +205,7 @@ void Session::ObserveIO(IocpEvent* iocpEvent, DWORD bytesTransferred)
 		ProcessRecv(bytesTransferred);
 		break;
 	case EventType::SEND:
+		// 보낼 크기만 보내기
 		ProcessSend(bytesTransferred);
 		break;
 	case EventType::DISCONNECT:
@@ -220,12 +223,35 @@ void Session::ProcessConnect()
 
 	isConnected.store(true);
 
-	//스마트 포인터로 변환 : 나의 주소
 	GetService()->AddSession(GetSession());
 
 	OnConnected();
 
 	RegisterRecv();
+}
+
+void Session::ProcessSend(int numOfBytes)
+{
+	// null로 밀고
+	sendEvent.iocpObj = nullptr;
+	// SendEvent의 sendBuffers 깨끗이
+	sendEvent.sendBuffers.clear();
+
+
+	if (numOfBytes == 0)
+	{
+		Disconnect(L"Send 0 bytes");
+	}
+
+
+	OnSend(numOfBytes);
+
+	unique_lock<shared_mutex> lock(rwLock);
+	if (sendQueue.empty())
+		sendRegistered.store(false);
+	else
+		// RegisterSend를 한번 더 실행
+		RegisterSend();
 }
 
 void Session::ProcessRecv(int numOfBytes)
@@ -259,30 +285,6 @@ void Session::ProcessRecv(int numOfBytes)
 
 }
 
-
-void Session::ProcessSend(int numOfBytes)
-{
-
-	sendEvent.iocpObj = nullptr;
-	sendEvent.sendBuffers.clear();
-	
-
-	if (numOfBytes == 0)
-	{
-		Disconnect(L"Send 0 bytes");
-	}
-
-
-	OnSend(numOfBytes);
-
-	unique_lock<shared_mutex> lock(rwLock);
-	if (sendQueue.empty())
-		sendRegistered.store(false);
-	else
-		//이어서 쓰기 아직 다 못씀
-
-	sendRegistered.store(false);
-}
 
 
 void Session::ProcessDisconnect()
